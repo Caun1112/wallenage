@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/asset_provider.dart';
 import 'providers/exchange_rate_provider.dart';
+import 'providers/income_expense_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -13,6 +14,10 @@ void main() {
         ChangeNotifierProxyProvider<ExchangeRateProvider, AssetProvider>(
           create: (_) => AssetProvider(),
           update: (_, rates, assets) => assets!..setRateProvider(rates),
+        ),
+        ChangeNotifierProxyProvider<AssetProvider, IncomeExpenseProvider>(
+          create: (_) => IncomeExpenseProvider(),
+          update: (_, assets, ie) => ie!..setAssetProvider(assets),
         ),
       ],
       child: const WalletApp(),

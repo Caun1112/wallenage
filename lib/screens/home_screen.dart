@@ -9,6 +9,7 @@ import '../widgets/asset_icon.dart';
 import 'add_asset_screen.dart';
 import 'asset_detail_screen.dart';
 import 'chart_screen.dart';
+import 'records_screen.dart';
 
 const _gold = Color(0xFFF5A623);
 const _card = Color(0xFF1C1C26);
@@ -170,12 +171,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddAssetScreen())),
-        backgroundColor: _gold,
-        foregroundColor: Colors.black,
-        icon: const Icon(Icons.add),
-        label: const Text('添加资产', style: TextStyle(fontWeight: FontWeight.bold)),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'record',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecordsScreen())),
+            backgroundColor: const Color(0xFF1C1C26),
+            foregroundColor: Colors.white70,
+            icon: const Icon(Icons.receipt_long_outlined, size: 20),
+            label: const Text('记一笔', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'asset',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddAssetScreen())),
+            backgroundColor: _gold,
+            foregroundColor: Colors.black,
+            icon: const Icon(Icons.add),
+            label: const Text('添加资产', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
