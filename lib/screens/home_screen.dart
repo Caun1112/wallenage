@@ -21,13 +21,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isFabVisible = true;
+  double _lastOffset = 0;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<ExchangeRateProvider>().load();
       if (mounted) context.read<AssetProvider>().load();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final offset = _scrollController.offset;
+    if (offset <= 0) {
+      if (!_isFabVisible) setState(() => _isFabVisible = true);
+    } else if (offset > _lastOffset && offset > 50) {
+      if (_isFabVisible) setState(() => _isFabVisible = false);
+    } else if (offset < _lastOffset) {
+      if (!_isFabVisible) setState(() => _isFabVisible = true);
+    }
+    _lastOffset = offset;
   }
 
   void _showRateSettings(BuildContext context) {
@@ -121,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFF0A0A0F),
       body: Consumer<AssetProvider>(
         builder: (_, p, _) => CustomScrollView(
+          controller: _scrollController,
           slivers: [
             SliverAppBar(
               pinned: true,
@@ -171,28 +195,39 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'record',
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecordsScreen())),
-            backgroundColor: const Color(0xFF1C1C26),
-            foregroundColor: Colors.white70,
-            icon: const Icon(Icons.receipt_long_outlined, size: 20),
-            label: const Text('记一笔', style: TextStyle(fontWeight: FontWeight.bold)),
+      floatingActionButton: AnimatedSlide(
+        duration: const Duration(milliseconds: 200),
+        offset: _isFabVisible ? Offset.zero : const Offset(0, 1.5),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _isFabVisible ? 1 : 0,
+          child: IgnorePointer(
+            ignoring: !_isFabVisible,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.extended(
+                  heroTag: 'record',
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecordsScreen())),
+                  backgroundColor: const Color(0xFF1C1C26),
+                  foregroundColor: Colors.white70,
+                  icon: const Icon(Icons.receipt_long_outlined, size: 20),
+                  label: const Text('记一笔', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.extended(
+                  heroTag: 'asset',
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddAssetScreen())),
+                  backgroundColor: _gold,
+                  foregroundColor: Colors.black,
+                  icon: const Icon(Icons.add),
+                  label: const Text('添加资产', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'asset',
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddAssetScreen())),
-            backgroundColor: _gold,
-            foregroundColor: Colors.black,
-            icon: const Icon(Icons.add),
-            label: const Text('添加资产', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
+        ),
       ),
     );
   }
