@@ -7,6 +7,7 @@ import 'exchange_rate_provider.dart';
 
 class AssetProvider extends ChangeNotifier {
   List<Asset> _assets = [];
+  Map<String, dynamic>? _snapshot;
   final _uuid = const Uuid();
   ExchangeRateProvider? _rateProvider;
 
@@ -26,6 +27,13 @@ class AssetProvider extends ChangeNotifier {
   double get totalLiabilities => liabilities.fold(0, (s, a) => s + _toCny(a));
   double get netAssets => totalAssets - totalLiabilities;
 
+  Map<String, dynamic>? get snapshot => _snapshot;
+
+  double? get netAssetsDelta {
+    if (_snapshot == null) return null;
+    return netAssets - (_snapshot!['netAssets'] as num).toDouble();
+  }
+
   Map<AssetType, double> get byType {
     final m = <AssetType, double>{};
     for (final a in _assets) {
@@ -36,6 +44,7 @@ class AssetProvider extends ChangeNotifier {
 
   Future<void> load() async {
     _assets = await AppDatabase.getAssets();
+    _snapshot = await AppDatabase.getSnapshot();
     notifyListeners();
   }
 
@@ -71,6 +80,23 @@ class AssetProvider extends ChangeNotifier {
   Future<void> deleteAsset(String id) async {
     await AppDatabase.deleteAsset(id);
     await load();
+  }
+
+  Future<void> lockNetWorth() async {
+    _snapshot = {
+      'netAssets': netAssets,
+      'totalAssets': totalAssets,
+      'totalLiabilities': totalLiabilities,
+      'lockedAt': DateTime.now().millisecondsSinceEpoch,
+    };
+    await AppDatabase.saveSnapshot(_snapshot!);
+    notifyListeners();
+  }
+
+  Future<void> unlockNetWorth() async {
+    _snapshot = null;
+    await AppDatabase.deleteSnapshot();
+    notifyListeners();
   }
 
   Future<List<Transaction>> getTransactions(String assetId) async =>

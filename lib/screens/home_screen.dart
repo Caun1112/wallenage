@@ -9,7 +9,6 @@ import '../widgets/asset_icon.dart';
 import 'add_asset_screen.dart';
 import 'asset_detail_screen.dart';
 import 'chart_screen.dart';
-import 'records_screen.dart';
 
 const _gold = Color(0xFFF5A623);
 const _card = Color(0xFF1C1C26);
@@ -208,15 +207,6 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 FloatingActionButton.extended(
-                  heroTag: 'record',
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecordsScreen())),
-                  backgroundColor: const Color(0xFF1C1C26),
-                  foregroundColor: Colors.white70,
-                  icon: const Icon(Icons.receipt_long_outlined, size: 20),
-                  label: const Text('记一笔', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.extended(
                   heroTag: 'asset',
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddAssetScreen())),
                   backgroundColor: _gold,
@@ -244,6 +234,8 @@ class _NetWorthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasSnapshot = provider.snapshot != null;
+    final delta = provider.netAssetsDelta;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       padding: const EdgeInsets.all(24),
@@ -253,12 +245,42 @@ class _NetWorthHeader extends StatelessWidget {
         border: Border.all(color: _gold.withValues(alpha: 0.15)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('净资产', style: TextStyle(color: Colors.white38, fontSize: 12, letterSpacing: 1.5)),
+        Row(children: [
+          const Text('净资产', style: TextStyle(color: Colors.white38, fontSize: 12, letterSpacing: 1.5)),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => hasSnapshot ? provider.unlockNetWorth() : provider.lockNetWorth(),
+            child: Icon(
+              hasSnapshot ? Icons.lock : Icons.lock_open_outlined,
+              size: 18,
+              color: hasSnapshot ? _gold : Colors.white38,
+            ),
+          ),
+        ]),
         const SizedBox(height: 6),
         Text(
           formatAmount(provider.netAssets),
           style: const TextStyle(color: _gold, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 1),
         ),
+        if (delta != null) ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Icon(
+              delta >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+              size: 14,
+              color: delta >= 0 ? Colors.green : Colors.red,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '${delta >= 0 ? '+' : ''}${formatAmount(delta.abs())} 较锁定',
+              style: TextStyle(
+                color: delta >= 0 ? Colors.green : Colors.red,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ]),
+        ],
         const SizedBox(height: 20),
         Row(children: [
           _MiniStat(label: '总资产', value: formatAmount(provider.totalAssets), color: Colors.white70),

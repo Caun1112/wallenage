@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/asset.dart';
@@ -18,15 +19,9 @@ class AppDatabase {
         await db.execute('CREATE TABLE assets(id TEXT PRIMARY KEY, name TEXT, type INTEGER, balance REAL, currency TEXT, note TEXT, updatedAt INTEGER)');
         await db.execute('CREATE TABLE transactions(id TEXT PRIMARY KEY, assetId TEXT, amount REAL, balanceAfter REAL, note TEXT, createdAt INTEGER)');
         await db.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT)');
-        await db.execute('CREATE TABLE income_expense(id TEXT PRIMARY KEY, type TEXT, amount REAL, category TEXT, assetId TEXT, assetName TEXT, note TEXT, createdAt INTEGER)');
       },
       onUpgrade: (db, oldV, _) async {
         if (oldV < 2) await db.execute('CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT)');
-        if (oldV < 3) await db.execute('CREATE TABLE IF NOT EXISTS income_expense(id TEXT PRIMARY KEY, type TEXT, amount REAL, category TEXT, note TEXT, createdAt INTEGER)');
-        if (oldV < 4) {
-          await db.execute('ALTER TABLE income_expense ADD COLUMN assetId TEXT');
-          await db.execute('ALTER TABLE income_expense ADD COLUMN assetName TEXT');
-        }
       },
     );
   }
@@ -63,6 +58,17 @@ class AppDatabase {
   static Future<void> setSetting(String key, String value) async =>
       (await db).insert('settings', {'key': key, 'value': value}, conflictAlgorithm: ConflictAlgorithm.replace);
 
+  static Future<Map<String, dynamic>?> getSnapshot() async {
+    final v = await getSetting('net_worth_snapshot');
+    return v != null ? jsonDecode(v) as Map<String, dynamic> : null;
+  }
+
+  static Future<void> saveSnapshot(Map<String, dynamic> data) async =>
+      setSetting('net_worth_snapshot', jsonEncode(data));
+
+  static Future<void> deleteSnapshot() async =>
+      (await db).delete('settings', where: 'key=?', whereArgs: ['net_worth_snapshot']);
+
   static Future<Map<String, dynamic>> exportAll() async {
     final d = await db;
     return {
@@ -71,15 +77,6 @@ class AppDatabase {
       'exportedAt': DateTime.now().millisecondsSinceEpoch,
     };
   }
-
-  static Future<List<Map<String, dynamic>>> getIncomeExpenses() async =>
-      (await db).query('income_expense', orderBy: 'createdAt DESC');
-
-  static Future<void> saveIncomeExpense(Map<String, dynamic> row) async =>
-      (await db).insert('income_expense', row, conflictAlgorithm: ConflictAlgorithm.replace);
-
-  static Future<void> deleteIncomeExpense(String id) async =>
-      (await db).delete('income_expense', where: 'id=?', whereArgs: [id]);
 
   static Future<void> importAll(Map<String, dynamic> data) async {
     final d = await db;
