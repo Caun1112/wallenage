@@ -32,78 +32,44 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
     setState(() => _txns = txns);
   }
 
-  bool _isAdd = true;
-
   void _showUpdateDialog() {
     final ctrl = TextEditingController();
     final noteCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
-          backgroundColor: _card,
-          title: const Text('更新余额', style: TextStyle(color: Colors.white)),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Row(children: [
-              Expanded(
-                child: _dialogField(ctrl, '变动金额', isNumber: true),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(children: [
-                  GestureDetector(
-                    onTap: () => setDialog(() => _isAdd = true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _isAdd ? const Color(0xFF4CAF50) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('+', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => setDialog(() => _isAdd = false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: !_isAdd ? Colors.redAccent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('-', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ]),
-              ),
-            ]),
-            const SizedBox(height: 12),
-            _dialogField(noteCtrl, '备注'),
-          ]),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消', style: TextStyle(color: Colors.white38))),
-            TextButton(
-              onPressed: () async {
-                final v = double.tryParse(ctrl.text);
-                if (v == null || v <= 0) return;
-                final newBalance = _isAdd ? _asset.balance + v : _asset.balance - v;
-                final provider = context.read<AssetProvider>();
-                final nav = Navigator.of(ctx);
-                await provider.updateBalance(_asset, newBalance, noteCtrl.text.trim());
-                if (mounted) {
-                  nav.pop();
-                  final updated = provider.assets.firstWhere((a) => a.id == _asset.id, orElse: () => _asset);
-                  setState(() => _asset = updated);
-                  _loadTxns();
-                }
-              },
-              child: const Text('确认', style: TextStyle(color: _gold, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _card,
+        title: const Text('更新余额', style: TextStyle(color: Colors.white)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(
+            '当前余额：${formatAmount(_asset.balance, currency: _asset.currency)}',
+            style: const TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          _dialogField(ctrl, '新的总余额', isNumber: true),
+          const SizedBox(height: 12),
+          _dialogField(noteCtrl, '备注'),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消', style: TextStyle(color: Colors.white38))),
+          TextButton(
+            onPressed: () async {
+              final newBalance = double.tryParse(ctrl.text);
+              if (newBalance == null || newBalance < 0) return;
+              if (newBalance == _asset.balance) return;
+              final provider = context.read<AssetProvider>();
+              final nav = Navigator.of(ctx);
+              await provider.updateBalance(_asset, newBalance, noteCtrl.text.trim());
+              if (mounted) {
+                nav.pop();
+                final updated = provider.assets.firstWhere((a) => a.id == _asset.id, orElse: () => _asset);
+                setState(() => _asset = updated);
+                _loadTxns();
+              }
+            },
+            child: const Text('确认', style: TextStyle(color: _gold, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
